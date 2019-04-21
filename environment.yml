@@ -1,0 +1,11 @@
+# Contains dependencies without specific verions
+# run: conda env create -f environment.yml
+name: rl
+dependencies:
+- matplotlib
+- numpy
+- python=3
+- pip:
+  - gym
+  - tensorflow
+  - stable-baselines
