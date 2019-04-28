@@ -37,6 +37,7 @@ parser.add_argument('--scale-lr', action='store_true', help='scale learning rate
 parser.add_argument('--no-tensorboard', action='store_true', help='do not log tensorboard events files (logged by default)')
 
 args = parser.parse_args()
+print(args)
 
 
 def check_envs_valid(env_ids):
@@ -57,15 +58,13 @@ start_seed, end_seed = args.start_end_seed
 widths = args.widths
 hyperparam_setting = args.hyperparam
 results_dir = args.results_dir
-log_dir = args.log_dir
+log_folder = args.log_dir
 
 # Create dictionary for passing remaining named arguments to function
 args_dict = vars(args)
 remain_args_dict = {k: v for k, v in args_dict.items() if k not in
                     set(['env', 'algo', 'start_end_seed', 'widths',
                          'hyperparam', 'results_dir', 'log_dir', 'name'])}
-#for remove_key in ['env', 'algo', 'start_end_seed', 'widths', 'hyperparam', 'results_dir', 'log_dir', 'name']:
-#    del args_dict[remove_key]
 
 # Check if environments are valid and run experiments
 check_envs_valid(env_ids)
@@ -77,7 +76,7 @@ for env_id in env_ids:
                     algo_dir = '{}_{}_scale-lr'.format(algo, hyperparam_setting)
                 else:
                     algo_dir = '{}_{}'.format(algo, hyperparam_setting)
-                log_dir = os.path.join(results_dir, log_dir, exp_name, env_id, algo_dir, 'w{}_d{}'.format(width, args.depth))
+                log_dir = os.path.join(results_dir, log_folder, exp_name, env_id, algo_dir, 'w{}_d{}'.format(width, args.depth))
                 
                 if hyperparam_setting == RL_BASELINES_ZOO_HYPER:
                     zoo_train(env_id, algo, seed, width, log_dir, args_dict, **remain_args_dict)
