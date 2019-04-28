@@ -5,6 +5,7 @@ dependencies:
 - matplotlib
 - numpy
 - python=3
+- pyyaml
 - pip:
   - gym
   - tensorflow
