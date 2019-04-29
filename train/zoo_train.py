@@ -23,6 +23,7 @@ from stable_baselines.ppo2.ppo2 import constfn
     
 HYPERPARAMS_PARENT_FOLDER = 'hyperparams'
 HYPERPARAMS_FOLDER = os.path.join(HYPERPARAMS_PARENT_FOLDER, 'rl-baselines-zoo')
+TB_LOG_NAME = 'tb'
 STR_TO_ALGO = {
     'a2c': A2C,
     'acer': ACER,
@@ -166,9 +167,11 @@ def zoo_train(env_id, algo, seed, width, log_dir, args_dict, depth, n_timesteps,
     
     # Train agent
     tensorboard_log = None if no_tensorboard else log_dir
-    model = STR_TO_ALGO[algo](env=env, tensorboard_log=tensorboard_log, verbose=1, **hyperparams)
+    policy_kwargs = dict(net_arch=[width for _ in range(depth)])    # act_fun defaults to tanh
+#    policy_kwargs = dict(act_fun=tf.nn.relu, net_arch=[width for _ in range(depth)])
+    model = STR_TO_ALGO[algo](env=env, policy_kwargs=policy_kwargs, tensorboard_log=tensorboard_log, verbose=0, **hyperparams)
 
-    kwargs = {'tb_log_name': 'tb'}
+    kwargs = {'tb_log_name': TB_LOG_NAME}
     if log_interval > -1:
         kwargs = {'log_interval': log_interval}
 
