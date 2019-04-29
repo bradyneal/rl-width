@@ -21,8 +21,10 @@ from stable_baselines.common.vec_env import VecFrameStack, SubprocVecEnv, VecNor
 from stable_baselines.ddpg import AdaptiveParamNoiseSpec, NormalActionNoise, OrnsteinUhlenbeckActionNoise
 from stable_baselines.ppo2.ppo2 import constfn
     
+
 HYPERPARAMS_PARENT_FOLDER = 'hyperparams'
 HYPERPARAMS_FOLDER = os.path.join(HYPERPARAMS_PARENT_FOLDER, 'rl-baselines-zoo')
+MONITOR_FOLDER = 'monitor'
 TB_LOG_NAME = 'tb'
 STR_TO_ALGO = {
     'a2c': A2C,
@@ -43,7 +45,10 @@ def zoo_train(env_id, algo, seed, width, log_dir, args_dict, depth, n_timesteps,
     Code largely adapted from rl-baselines-zoo's train.py:
         https://github.com/araffin/rl-baselines-zoo/blob/master/train.py
     """
+    # Make directories
     os.makedirs(log_dir, exist_ok=True)
+    monitor_dir = os.path.join(log_dir, MONITOR_FOLDER)
+    os.makedirs(monitor_dir, exist_ok=True)
     
     is_atari = False
     if 'NoFrameskip' in env_id:
@@ -113,9 +118,9 @@ def zoo_train(env_id, algo, seed, width, log_dir, args_dict, depth, n_timesteps,
 #        env.seed(args.seed)
     else:
         if n_envs == 1:
-            env = DummyVecEnv([make_env(env_id, log_dir, seed, env_i=0, n_envs=1)])
+            env = DummyVecEnv([make_env(env_id, monitor_dir, seed, env_i=0, n_envs=1)])
         else:
-            env = SubprocVecEnv([make_env(env_id, log_dir, seed, env_i=i, n_envs=n_envs) for i in range(n_envs)])
+            env = SubprocVecEnv([make_env(env_id, monitor_dir, seed, env_i=i, n_envs=n_envs) for i in range(n_envs)])
         if normalize:
             print("Normalizing input and return")
             env = VecNormalize(env, **normalize_kwargs)
@@ -199,7 +204,7 @@ def zoo_train(env_id, algo, seed, width, log_dir, args_dict, depth, n_timesteps,
     env.close()
         
         
-def make_env(env_id, log_dir, seed, env_i=0, n_envs=1):
+def make_env(env_id, monitor_dir, seed, env_i=0, n_envs=1):
     """
     Utility function for multiprocessed env.
 
@@ -208,10 +213,12 @@ def make_env(env_id, log_dir, seed, env_i=0, n_envs=1):
     :param seed: (int) the inital seed for RNG
     :param rank: (int) index of the subprocess
     """
-    effective_seed = seed * n_envs + env_i
-    set_global_seeds(effective_seed)
     def _init():
-        env = Monitor(gym.make(env_id), log_dir)
+        effective_seed = seed * n_envs + env_i
+        set_global_seeds(effective_seed)
+        env = Monitor(gym.make(env_id),
+                      os.path.join(monitor_dir, str(env_i)),
+                      allow_early_resets=True)
         env.seed(effective_seed)
         return env
     return _init
