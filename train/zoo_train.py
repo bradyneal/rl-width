@@ -168,7 +168,7 @@ def zoo_train(env_id, algo, seed, width, log_dir, args_dict, depth, n_timesteps,
     tensorboard_log = None if no_tensorboard else log_dir
     model = STR_TO_ALGO[algo](env=env, tensorboard_log=tensorboard_log, verbose=1, **hyperparams)
 
-    kwargs = {}
+    kwargs = {'tb_log_name': 'tb'}
     if log_interval > -1:
         kwargs = {'log_interval': log_interval}
 
