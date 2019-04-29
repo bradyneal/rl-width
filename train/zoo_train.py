@@ -195,6 +195,8 @@ def zoo_train(env_id, algo, seed, width, log_dir, args_dict, depth, n_timesteps,
             env = env.venv
         # Important: save the running average, for testing the agent we need that normalization
         env.save_running_average(log_dir)
+    
+    env.close()
         
         
 def make_env(env_id, log_dir, seed, env_i=0, n_envs=1):
