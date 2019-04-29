@@ -37,6 +37,10 @@ STR_TO_ALGO = {
 }
 
 
+def build_monitor_dir(log_dir):
+    return os.path.join(log_dir, MONITOR_FOLDER)
+    
+
 def zoo_train(env_id, algo, seed, width, log_dir, args_dict, depth, n_timesteps,
             log_interval, scale_lr, no_tensorboard):
     """
@@ -47,7 +51,7 @@ def zoo_train(env_id, algo, seed, width, log_dir, args_dict, depth, n_timesteps,
     """
     # Make directories
     os.makedirs(log_dir, exist_ok=True)
-    monitor_dir = os.path.join(log_dir, MONITOR_FOLDER)
+    monitor_dir = build_monitor_dir(log_dir)
     os.makedirs(monitor_dir, exist_ok=True)
     
     is_atari = False

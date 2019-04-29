@@ -12,7 +12,7 @@ import os
 from pprint import pprint
 
 import gym
-from train.zoo_train import zoo_train, STR_TO_ALGO
+from train import zoo_train, STR_TO_ALGO
 
 
 RL_BASELINES_ZOO_HYPER = 'rl-baselines-zoo'
