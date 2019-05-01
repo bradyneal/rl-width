@@ -21,11 +21,13 @@ from stable_baselines.common.vec_env import VecFrameStack, SubprocVecEnv, VecNor
 from stable_baselines.ddpg import AdaptiveParamNoiseSpec, NormalActionNoise, OrnsteinUhlenbeckActionNoise
 from stable_baselines.ppo2.ppo2 import constfn
     
-
 HYPERPARAMS_PARENT_FOLDER = 'hyperparams'
 HYPERPARAMS_FOLDER = os.path.join(HYPERPARAMS_PARENT_FOLDER, 'rl-baselines-zoo')
 MONITOR_FOLDER = 'monitor'
 TB_LOG_NAME = 'tb'
+TUNED_WIDTH = 64
+LR_KEY = 'learning_rate'
+
 STR_TO_ALGO = {
     'a2c': A2C,
     'acer': ACER,
@@ -34,6 +36,17 @@ STR_TO_ALGO = {
     'ddpg': DDPG,
     'sac': SAC,
     'ppo2': PPO2
+}
+
+# Default learnings rates coppied from Stable Baselines on May 1, 2019
+ALGO_TO_DEF_LR = {
+    'a2c': 7e-4,
+    'acer': 7e-4,
+    'acktr': 0.25,  # just the discrete one
+    'dqn': 5e-4,
+#    'ddpg': {'actor_lr': 1e-4, 'critic_lr': 1e-3},
+    'sac': 3e-4,
+    'ppo2': 2.5e-4,
 }
 
 
@@ -67,6 +80,22 @@ def zoo_train(env_id, algo, seed, width, log_dir, args_dict, depth, n_timesteps,
         else:
             hyperparams = yaml.safe_load(f)[env_id]
 
+    # Scale learning rate with width
+    if scale_lr:
+        lr_before = hyperparams[LR_KEY]
+        get_scaled_lr = lambda lr: min(lr, lr * (TUNED_WIDTH / width))
+        if LR_KEY not in hyperparams:
+            hyperparams[LR_KEY] = get_scaled_lr(ALGO_TO_DEF_LR[algo])
+        if isinstance(hyperparams[LR_KEY], str):
+            schedule, initial_value = hyperparams[LR_KEY].split('_')
+            initial_value = str(get_scaled_lr(float(initial_value)))
+            hyperparams[LR_KEY] = schedule + '_' + initial_value
+        elif isinstance(hyperparams[LR_KEY], float):
+            hyperparams[LR_KEY] = get_scaled_lr(hyperparams[LR_KEY])
+        else:
+            raise ValueError('Invalid value for {}: {}'.format(LR_KEY, hyperparams[LR_KEY]))
+        print('Scaled learning rate from {} to {}'.format(lr_before, hyperparams[LR_KEY]))
+
     # Sort hyperparams that will be saved
     saved_hyperparams = OrderedDict([(key, hyperparams[key]) for key in sorted(hyperparams.keys())])
     pprint(saved_hyperparams)
@@ -87,7 +116,7 @@ def zoo_train(env_id, algo, seed, width, log_dir, args_dict, depth, n_timesteps,
             elif isinstance(hyperparams[key], float):
                 hyperparams[key] = constfn(hyperparams[key])
             else:
-                raise ValueError('Invalid valid for {}: {}'.format(key, hyperparams[key]))
+                raise ValueError('Invalid value for {}: {}'.format(key, hyperparams[key]))
 
     # Should we overwrite the number of timesteps?
     if n_timesteps <= 0:
