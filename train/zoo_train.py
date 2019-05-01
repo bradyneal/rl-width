@@ -11,6 +11,7 @@ from collections import OrderedDict
 from pprint import pprint
 import numpy as np
 import yaml
+import math
 
 import gym
 from stable_baselines.common import set_global_seeds
@@ -55,7 +56,7 @@ def build_monitor_dir(log_dir):
     
 
 def zoo_train(env_id, algo, seed, width, log_dir, args_dict, depth, n_timesteps,
-            log_interval, scale_lr, no_tensorboard):
+            log_interval, scale_lr, no_tensorboard, lr_pow):
     """
     Train an RL agent with the given specifications, using the Stable Baselines
     library and tuned hyperparametes from rl-baselines-zoo.
@@ -83,7 +84,7 @@ def zoo_train(env_id, algo, seed, width, log_dir, args_dict, depth, n_timesteps,
     # Scale learning rate with width
     if scale_lr:
         lr_before = hyperparams[LR_KEY]
-        get_scaled_lr = lambda lr: min(lr, lr * (TUNED_WIDTH / width))
+        get_scaled_lr = lambda lr: min(lr, lr * math.pow(width / TUNED_WIDTH, lr_pow))
         if LR_KEY not in hyperparams:
             hyperparams[LR_KEY] = get_scaled_lr(ALGO_TO_DEF_LR[algo])
         if isinstance(hyperparams[LR_KEY], str):

@@ -27,6 +27,7 @@ EXP_DEF = 'general'
 FIG_DEF = 'figures'
 HYPERPARAM_DEF = RL_BASELINES_ZOO_HYPER
 DEPTH_DEF = 2
+LR_POW_DEF = -1
 
 PARSER = argparse.ArgumentParser()
 PARSER.add_argument('--results-dir', default=RESULTS_DEF, type=str, help='path to where all results are written')
@@ -45,6 +46,7 @@ PARSER.add_argument('-n', '--n-timesteps', help='Overwrite the number of timeste
 #parser.add_argument('-tb', '--tensorboard-dir', default='tensorboard', type=str, help='Tensorboard log dir')
 PARSER.add_argument('--log-interval', help='Override log interval (default: -1, no change)', default=-1, type=int)
 PARSER.add_argument('--scale-lr', action='store_true', help='scale learning rate with width')
+PARSER.add_argument('--lr-pow', default=LR_POW_DEF, type=float, help='exponent to scale learning rate with width by')
 PARSER.add_argument('--no-tensorboard', action='store_true', help='do not log tensorboard events files (logged by default)')
 
 
@@ -58,15 +60,17 @@ def check_envs_valid(env_ids):
                              .format(env_id, closest_match))
 
 
-def build_log_dir(env_id, algo, width, seed, results_dir=RESULTS_DEF, log_folder=LOG_DEF, exp_name=EXP_DEF, hyperparam_setting=HYPERPARAM_DEF, scale_lr=False, depth=DEPTH_DEF):
-    algo_dir = get_algo_fullname(algo, hyperparam_setting, scale_lr)
+def build_log_dir(env_id, algo, width, seed, results_dir=RESULTS_DEF,
+                  log_folder=LOG_DEF, exp_name=EXP_DEF, hyperparam_setting=HYPERPARAM_DEF,
+                  scale_lr=False, depth=DEPTH_DEF, lr_pow=LR_POW_DEF):
+    algo_dir = get_algo_fullname(algo, hyperparam_setting, scale_lr, lr_pow=lr_pow)
     log_dir = os.path.join(results_dir, log_folder, exp_name, env_id, algo_dir, 
                            'w{}_d{}'.format(width, depth), 'seed{}'.format(seed))
     return log_dir
 
-def get_algo_fullname(algo, hyperparam_setting, scale_lr):
+def get_algo_fullname(algo, hyperparam_setting, scale_lr, lr_pow=LR_POW_DEF):
     if scale_lr:
-        algo_fullname = '{}_{}_scale-lr'.format(algo, hyperparam_setting)
+        algo_fullname = '{}_{}_scale-lr{}'.format(algo, hyperparam_setting, lr_pow)
     else:
         algo_fullname = '{}_{}'.format(algo, hyperparam_setting)
     return algo_fullname
@@ -105,7 +109,7 @@ def main():
         for algo in algos:
             for seed in range(start_seed, end_seed + 1):
                 for width in widths:
-                    log_dir = build_log_dir(env_id, algo, width, seed, results_dir=results_dir, log_folder=log_folder, exp_name=exp_name, hyperparam_setting=hyperparam_setting, scale_lr=args.scale_lr, depth=args.depth)
+                    log_dir = build_log_dir(env_id, algo, width, seed, results_dir=results_dir, log_folder=log_folder, exp_name=exp_name, hyperparam_setting=hyperparam_setting, scale_lr=args.scale_lr, depth=args.depth, lr_pow=args.lr_pow)
                     if hyperparam_setting == RL_BASELINES_ZOO_HYPER:
                         zoo_train(env_id, algo, seed, width, log_dir, args_dict, **remain_args_dict)
                     elif hyperparam_setting == RLLIB_HYPER:
