@@ -84,7 +84,7 @@ def main():
     algos = args.algo
     if args.start_end_seed is None:
         start_seed = 0
-        end_seed = args.n_seeds
+        end_seed = args.n_seeds - 1
     else:
         start_seed, end_seed = args.start_end_seed
     widths = args.widths
