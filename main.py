@@ -97,7 +97,7 @@ def main():
     remain_args_dict = {k: v for k, v in args_dict.items() if k not in
                         set(['env', 'algo', 'start_end_seed', 'widths',
                              'hyperparam', 'results_dir', 'log_dir', 'name',
-                             'figure_dir'])}
+                             'figure_dir', 'n_seeds'])}
     
     # Check if environments are valid and run experiments
     check_envs_valid(env_ids)

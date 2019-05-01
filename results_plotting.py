@@ -53,7 +53,7 @@ def plot_all_widths(*args, **kwargs):
 
 class ResultsPlotter:
     
-    def __init__(self, env_id, algo, widths, num_seeds, figure_dir,
+    def __init__(self, env_id, algo, widths, n_seeds, figure_dir,
                  hyperparam_setting=HYPERPARAM_DEF, scale_lr=False,
                  path_args={}, smooth_window=50, smooth_seeds=True, smooth_mean=False,
                  smooth_std=False, xaxis=X_EPISODES, conf_int='mean',
@@ -61,7 +61,7 @@ class ResultsPlotter:
         self.env_id = env_id
         self.algo = algo
         self.widths = widths
-        self.num_seeds = num_seeds
+        self.n_seeds = n_seeds
         self.figure_dir = figure_dir
         self.hyperparam_setting = hyperparam_setting
         self.scale_lr = scale_lr
@@ -88,7 +88,7 @@ class ResultsPlotter:
     
     def get_seeds(self, width, seeds=None):
         if seeds is None:
-            seeds = range(self.num_seeds)
+            seeds = range(self.n_seeds)
             
         # Load the seeds
         x_seeds = []
@@ -130,7 +130,7 @@ class ResultsPlotter:
             mean = np.mean(Y, axis=STACK_DIM)
             std = np.std(Y, axis=STACK_DIM)
             if self.conf_int == 'mean':
-                std /= sqrt(self.num_seeds)
+                std /= sqrt(self.n_seeds)
             elif self.conf_int == 'seed':
                 pass
             else:
@@ -200,6 +200,6 @@ if __name__ == '__main__':
     for env_id in args.env:
         for algo in args.algo:
             figure_dir = os.path.join(args.results_dir, args.figure_dir, args.name)
-            plot_all_widths(env_id, algo, args.widths, num_seeds=args.n_seeds, figure_dir=figure_dir,
+            plot_all_widths(env_id, algo, args.widths, n_seeds=args.n_seeds, figure_dir=figure_dir,
                  hyperparam_setting=args.hyperparam, scale_lr=args.scale_lr)
             
