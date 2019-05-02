@@ -28,6 +28,7 @@ from train import build_monitor_dir
 # 0 corresponds to implementing np.vstack code, whereas
 # 1 correpsonds to implementing np.hstack code
 STACK_DIM = 0
+COLOR_PALETTE_DEF = 'hls'
 LINESTYLES = ['-', '--', '-.', ':']
 # https://matplotlib.org/gallery/lines_bars_and_markers/linestyles.html
 FANCY_LINESTYLES = OrderedDict(
@@ -61,7 +62,7 @@ class ResultsPlotter:
                  hyperparam_setting=HYPERPARAM_DEF, scale_lr=False, lr_pow=LR_POW_DEF,
                  path_args={}, smooth_window=50, smooth_seeds=True, smooth_mean=False,
                  smooth_std=False, xaxis=X_EPISODES, conf_int='mean',
-                 alpha=0.5, trim_diff_widths=True, color_palettes=['muted'], linestyle='-'):
+                 alpha=0.5, trim_diff_widths=True, color_palettes=[COLOR_PALETTE_DEF], linestyle='-'):
         self.env_id = env_id
         self.algo = algo
         self.widths = widths
@@ -185,12 +186,6 @@ class ResultsPlotter:
         xs, y_avgs, y_offsets = self.get_all_widths_mean_and_std()
         assert len(xs) == len(widths)
         
-#        sns.set_palette(sns.husl_palette(len(widths), h=.7, l=.6))
-#        sns.set_palette(sns.color_palette("Paired", len(widths)))
-#        sns.set_palette(sns.color_palette("colorblind", len(widths)))
-#        sns.set_palette(sns.color_palette("deep", len(widths)))
-#        sns.set_palette(sns.color_palette("muted", len(widths)))
-        
         n_colors = len(widths)
         for palette in self.color_palettes:
             print('palette:', palette)
@@ -243,6 +238,7 @@ def get_kwargs_after_delim(s, delim='_', default={}):
 
         
 if __name__ == '__main__':
+    PARSER.add_argument('--palettes', nargs='+', default=[COLOR_PALETTE_DEF], type=str, help='color palettes to make plots in')
     args = PARSER.parse_args()
     
     if args.start_end_seed is None:
@@ -256,5 +252,5 @@ if __name__ == '__main__':
             figure_dir = os.path.join(args.results_dir, args.figure_dir, args.name)
             plot_all_widths(env_id, algo, args.widths, n_seeds=n_seeds, figure_dir=figure_dir,
                  hyperparam_setting=args.hyperparam, scale_lr=args.scale_lr, lr_pow=args.lr_pow,
-                 path_args={'exp_name': args.name})
+                 color_palettes=args.palettes, path_args={'exp_name': args.name})
             
