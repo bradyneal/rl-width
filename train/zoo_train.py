@@ -83,11 +83,12 @@ def zoo_train(env_id, algo, seed, width, log_dir, args_dict, depth, n_timesteps,
 
     # Scale learning rate with width
     if scale_lr:
-        lr_before = hyperparams[LR_KEY]
+        lr_before = hyperparams.get(LR_KEY, ALGO_TO_DEF_LR[algo])
+        print('width:', width, '\ttuned width:', TUNED_WIDTH)
         get_scaled_lr = lambda lr: min(lr, lr * math.pow(width / TUNED_WIDTH, lr_pow))
         if LR_KEY not in hyperparams:
             hyperparams[LR_KEY] = get_scaled_lr(ALGO_TO_DEF_LR[algo])
-        if isinstance(hyperparams[LR_KEY], str):
+        elif isinstance(hyperparams[LR_KEY], str):
             schedule, initial_value = hyperparams[LR_KEY].split('_')
             initial_value = str(get_scaled_lr(float(initial_value)))
             hyperparams[LR_KEY] = schedule + '_' + initial_value
