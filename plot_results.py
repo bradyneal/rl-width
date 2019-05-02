@@ -8,9 +8,14 @@ Created on Mon Apr 29 14:57:36 2019
 
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 from math import sqrt
 from collections import OrderedDict
+import ast
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set(style='whitegrid')
+#sns.set(style='darkgrid')
 
 from stable_baselines.bench.monitor import load_results
 from stable_baselines.results_plotter import \
@@ -43,7 +48,6 @@ FANCY_LINESTYLES = OrderedDict(
 #     ('dashdotdotted',         (0, (3, 5, 1, 5, 1, 5))),
 #     ('densely dashdotdotted', (0, (3, 1, 1, 1, 1, 1)))
      ])
-COLORS = []
 
 
 def plot_all_widths(*args, **kwargs):
@@ -57,7 +61,7 @@ class ResultsPlotter:
                  hyperparam_setting=HYPERPARAM_DEF, scale_lr=False, lr_pow=LR_POW_DEF,
                  path_args={}, smooth_window=50, smooth_seeds=True, smooth_mean=False,
                  smooth_std=False, xaxis=X_EPISODES, conf_int='mean',
-                 alpha=0.5, trim_diff_widths=True, linestyle='-'):
+                 alpha=0.5, trim_diff_widths=True, color_palettes=['muted'], linestyle='-'):
         self.env_id = env_id
         self.algo = algo
         self.widths = widths
@@ -76,6 +80,7 @@ class ResultsPlotter:
         self.alpha = alpha
         self.trim_diff_widths = trim_diff_widths
         self.linestyle = linestyle
+        self.color_palettes = color_palettes
         
     def get_monitor_dir(self, width, seed):
         log_dir = build_log_dir(env_id=self.env_id, algo=self.algo,
@@ -180,27 +185,62 @@ class ResultsPlotter:
         xs, y_avgs, y_offsets = self.get_all_widths_mean_and_std()
         assert len(xs) == len(widths)
         
-        fig = plt.figure()
-        for i, (width, x, y, y_offset) in enumerate(zip(widths, xs, y_avgs, y_offsets)):
-            color = 'C' + str(i % 10)
-            linestyle = linestyles[i % len(linestyles)]
-            plt.plot(x, y, '-', label=str(width), color=color, linestyle=linestyle)
-            plt.fill_between(x, y + y_offset, y - y_offset, facecolor=color, alpha=self.alpha)
-        plt.legend()
-        plt.xlabel(self.xaxis)
-        plt.ylabel('average return')
-        plt.tight_layout()
+#        sns.set_palette(sns.husl_palette(len(widths), h=.7, l=.6))
+#        sns.set_palette(sns.color_palette("Paired", len(widths)))
+#        sns.set_palette(sns.color_palette("colorblind", len(widths)))
+#        sns.set_palette(sns.color_palette("deep", len(widths)))
+#        sns.set_palette(sns.color_palette("muted", len(widths)))
         
-        os.makedirs(self.figure_dir, exist_ok=True)
-        algo_fullname = get_algo_fullname(self.algo, self.hyperparam_setting,
-                                          self.scale_lr, lr_pow=self.lr_pow)
-        filename = '{}_{}.pdf'.format(self.env_id, algo_fullname)
-        path = os.path.join(self.figure_dir, filename)
-        print('Saving figure to', path)
-        fig.savefig(path, bbox_inches='tight')
+        n_colors = len(widths)
+        for palette in self.color_palettes:
+            print('palette:', palette)
+            if palette.startswith('hls'):
+                kwargs = get_kwargs_after_delim(palette, delim='_', default={'l': 0.55})
+                sns.set_palette(sns.hls_palette(n_colors, **kwargs))
+            elif palette.startswith('husl'):
+                kwargs = get_kwargs_after_delim(palette, delim='_')
+                sns.set_palette(sns.husl_palette(n_colors, **kwargs))
+#                sns.set_palette(sns.husl_palette(n_colors, h=.7, l=.6))
+            elif palette in ['Paired', 'muted', 'deep', 'colorblind']:
+                sns.set_palette(sns.color_palette(palette, n_colors))
+            else:
+                raise ValueError('Unsupported color palette: {}'.format(palette))
+
+            fig = plt.figure()
+            for i, (width, x, y, y_offset) in enumerate(zip(widths, xs, y_avgs, y_offsets)):
+                color = 'C' + str(i)
+                linestyle = linestyles[i % len(linestyles)]
+                plt.plot(x, y, '-', label=str(width), color=color, linestyle=linestyle)
+                plt.fill_between(x, y + y_offset, y - y_offset, facecolor=color, alpha=self.alpha)
+            plt.legend()
+            plt.xlabel(self.xaxis)
+            plt.ylabel('average return')
+            plt.tight_layout()
+            
+            os.makedirs(self.figure_dir, exist_ok=True)
+            algo_fullname = get_algo_fullname(self.algo, self.hyperparam_setting,
+                                              self.scale_lr, lr_pow=self.lr_pow)
+            if len(self.color_palettes) == 1:
+                filename = '{}_{}.pdf'.format(self.env_id, algo_fullname)
+            else:
+                filename = '{}_{}_{}.pdf'.format(self.env_id, algo_fullname, palette)
+            path = os.path.join(self.figure_dir, filename)
+            print('Saving figure to', path)
+            fig.savefig(path, bbox_inches='tight')
+            fig.show()
         
     def get_all_widths_est_bootstrap(self):
         raise NotImplementedError("To be implemented")
+        
+
+def get_kwargs_after_delim(s, delim='_', default={}):
+    split = s.split(delim, 1)
+    if len(split) == 1:
+        kwargs = default
+    else:
+        kwargs = ast.literal_eval(split[1])
+    return kwargs
+
         
 if __name__ == '__main__':
     args = PARSER.parse_args()
