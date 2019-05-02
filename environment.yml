@@ -8,5 +8,6 @@ dependencies:
 - pyyaml
 - pip:
   - gym
-  - tensorflow
+  # - tensorflow
+  - tensorflow-gpu
   - stable-baselines
