@@ -16,7 +16,7 @@ from stable_baselines.bench.monitor import load_results
 from stable_baselines.results_plotter import \
     ts2xy, window_func, X_TIMESTEPS, X_EPISODES, X_WALLTIME
 
-from main import build_log_dir, get_algo_fullname, PARSER, EXP_DEF, HYPERPARAM_DEF 
+from main import build_log_dir, get_algo_fullname, PARSER, EXP_DEF, HYPERPARAM_DEF, LR_POW_DEF
 from train import build_monitor_dir
 
 
@@ -54,7 +54,7 @@ def plot_all_widths(*args, **kwargs):
 class ResultsPlotter:
     
     def __init__(self, env_id, algo, widths, n_seeds, figure_dir,
-                 hyperparam_setting=HYPERPARAM_DEF, scale_lr=False,
+                 hyperparam_setting=HYPERPARAM_DEF, scale_lr=False, lr_pow=LR_POW_DEF,
                  path_args={}, smooth_window=50, smooth_seeds=True, smooth_mean=False,
                  smooth_std=False, xaxis=X_EPISODES, conf_int='mean',
                  alpha=0.5, trim_diff_widths=True, linestyle='-'):
@@ -65,6 +65,7 @@ class ResultsPlotter:
         self.figure_dir = figure_dir
         self.hyperparam_setting = hyperparam_setting
         self.scale_lr = scale_lr
+        self.lr_pow = lr_pow
         self.path_args = path_args
         self.smooth_window = smooth_window
         self.smooth_seeds = smooth_seeds
@@ -78,11 +79,14 @@ class ResultsPlotter:
         
     def get_monitor_dir(self, width, seed):
         log_dir = build_log_dir(env_id=self.env_id, algo=self.algo,
-                                width=width, seed=seed, **self.path_args)
+                                width=width, seed=seed, scale_lr=self.scale_lr,
+                                lr_pow=self.lr_pow, **self.path_args)
         return build_monitor_dir(log_dir)
         
     def get_x_y(self, width, seed):
         timesteps_df = load_results(self.get_monitor_dir(width, seed))
+        if timesteps_df.shape[0] == 0:
+            raise ValueError('Timesteps for seed {} of width {} is empty'.format(seed, width))
         x, y = ts2xy(timesteps_df, self.xaxis)
         return x, y
     
@@ -116,7 +120,9 @@ class ResultsPlotter:
     def smooth(self, x, y):
         if self.smooth_window is not None and x.shape[0] >= self.smooth_window:
             x_shift, y_smooth = window_func(x, y, self.smooth_window, np.mean)
-        return x_shift, y_smooth
+            return x_shift, y_smooth
+        else:
+            return x, y
     
     def get_all_widths_mean_and_std(self):
         # Get mean and std for each width
@@ -186,7 +192,8 @@ class ResultsPlotter:
         plt.tight_layout()
         
         os.makedirs(self.figure_dir, exist_ok=True)
-        algo_fullname = get_algo_fullname(self.algo, self.hyperparam_setting, self.scale_lr)
+        algo_fullname = get_algo_fullname(self.algo, self.hyperparam_setting,
+                                          self.scale_lr, lr_pow=self.lr_pow)
         filename = '{}_{}.pdf'.format(self.env_id, algo_fullname)
         path = os.path.join(self.figure_dir, filename)
         print('Saving figure to', path)
@@ -196,10 +203,18 @@ class ResultsPlotter:
         raise NotImplementedError("To be implemented")
         
 if __name__ == '__main__':
-    args = PARSER.parse_args()    
+    args = PARSER.parse_args()
+    
+    if args.start_end_seed is None:
+        n_seeds = args.n_seeds
+    else:
+        start_seed, end_seed = args.start_end_seed
+        n_seeds = end_seed - start_seed + 1
+        
     for env_id in args.env:
         for algo in args.algo:
             figure_dir = os.path.join(args.results_dir, args.figure_dir, args.name)
-            plot_all_widths(env_id, algo, args.widths, n_seeds=args.n_seeds, figure_dir=figure_dir,
-                 hyperparam_setting=args.hyperparam, scale_lr=args.scale_lr)
+            plot_all_widths(env_id, algo, args.widths, n_seeds=n_seeds, figure_dir=figure_dir,
+                 hyperparam_setting=args.hyperparam, scale_lr=args.scale_lr, lr_pow=args.lr_pow,
+                 path_args={'exp_name': args.name})
             
