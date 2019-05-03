@@ -20,6 +20,7 @@ RL_BASELINES_ZOO_HYPER = 'rl-baselines-zoo'
 RLLIB_HYPER = 'rllib'
 DEFAULT_HYPER = 'default'
 HYPERPARAM_CHOICES = [RL_BASELINES_ZOO_HYPER, RLLIB_HYPER, DEFAULT_HYPER]
+ACT_FUN_CHOICES = ['relu', 'tanh']
 
 RESULTS_DEF = os.getcwd()
 LOG_DEF = 'logs'
@@ -28,6 +29,7 @@ FIG_DEF = 'figures'
 HYPERPARAM_DEF = RL_BASELINES_ZOO_HYPER
 DEPTH_DEF = 2
 LR_POW_DEF = -1
+ACT_FUN_DEF = 'tanh'
 
 PARSER = argparse.ArgumentParser()
 PARSER.add_argument('--results-dir', default=RESULTS_DEF, type=str, help='path to where all results are written')
@@ -40,6 +42,8 @@ PARSER.add_argument('-s', '--start-end-seed', nargs=2, type=int, help='first and
 PARSER.add_argument('--n-seeds', default=1, type=int, help='number of random seeds to run')
 PARSER.add_argument('-w', '--widths', nargs='+', default=[64], type=int, help='network width(s)')
 PARSER.add_argument('--hyperparam', default=HYPERPARAM_DEF, type=str, choices=HYPERPARAM_CHOICES, help='hyperparameter settings')
+PARSER.add_argument('--act-fun', default=ACT_FUN_DEF, type=str, choices=ACT_FUN_CHOICES, help='network activation function')
+
     
 PARSER.add_argument('-d', '--depth', default=DEPTH_DEF, type=int, help='number of hidden layers')
 PARSER.add_argument('-n', '--n-timesteps', help='Overwrite the number of timesteps', default=-1, type=int)
