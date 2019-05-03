@@ -25,10 +25,15 @@ from main import build_log_dir, get_algo_fullname, PARSER, EXP_DEF, HYPERPARAM_D
 from train import build_monitor_dir
 
 
+tab10 = [c for i, c in enumerate(sns.color_palette("tab20", 20)) if i % 2 == 0]
+tab10_light = [c for i, c in enumerate(sns.color_palette("tab20", 20)) if i % 2 == 1]
+TAB20_DARK_LIGHT = tab10 + tab10_light
+TAB20_CUSTOM_STR = 'tab20_custom'
+COLOR_PALETTE_DEF = TAB20_CUSTOM_STR
+
 # 0 corresponds to implementing np.vstack code, whereas
 # 1 correpsonds to implementing np.hstack code
 STACK_DIM = 0
-COLOR_PALETTE_DEF = 'hls'
 LINESTYLES = ['-', '--', '-.', ':']
 # https://matplotlib.org/gallery/lines_bars_and_markers/linestyles.html
 FANCY_LINESTYLES = OrderedDict(
@@ -189,14 +194,16 @@ class ResultsPlotter:
         n_colors = len(widths)
         for palette in self.color_palettes:
             print('palette:', palette)
-            if palette.startswith('hls'):
+            if palette == TAB20_CUSTOM_STR:
+                sns.set_palette(TAB20_DARK_LIGHT)
+            elif palette.startswith('hls'):
                 kwargs = get_kwargs_after_delim(palette, delim='_', default={'l': 0.55})
                 sns.set_palette(sns.hls_palette(n_colors, **kwargs))
             elif palette.startswith('husl'):
                 kwargs = get_kwargs_after_delim(palette, delim='_')
                 sns.set_palette(sns.husl_palette(n_colors, **kwargs))
 #                sns.set_palette(sns.husl_palette(n_colors, h=.7, l=.6))
-            elif palette in ['Paired', 'muted', 'deep', 'colorblind']:
+            elif palette in ['tab10', 'tab20', 'muted', 'deep', 'colorblind', 'Paired']:
                 sns.set_palette(sns.color_palette(palette, n_colors))
             else:
                 raise ValueError('Unsupported color palette: {}'.format(palette))
