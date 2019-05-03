@@ -21,6 +21,7 @@ from stable_baselines.common.cmd_util import make_atari_env
 from stable_baselines.common.vec_env import VecFrameStack, SubprocVecEnv, VecNormalize, DummyVecEnv
 from stable_baselines.ddpg import AdaptiveParamNoiseSpec, NormalActionNoise, OrnsteinUhlenbeckActionNoise
 from stable_baselines.ppo2.ppo2 import constfn
+from stable_baselines.common.policies import MlpPolicy
 import tensorflow as tf
     
 HYPERPARAMS_PARENT_FOLDER = 'hyperparams'
@@ -224,7 +225,7 @@ def zoo_train(env_id, algo, seed, width, log_dir, args_dict, depth, n_timesteps,
         model = STR_TO_ALGO[algo](env=env, policy_kwargs=policy_kwargs, tensorboard_log=tensorboard_log, verbose=0, **hyperparams)
     else:
         print('Running with Stable Baselines default hyperparameters')
-        model = STR_TO_ALGO[algo](env=env, policy_kwargs=policy_kwargs, tensorboard_log=tensorboard_log, verbose=0)
+        model = STR_TO_ALGO[algo](MlpPolicy, env=env, policy_kwargs=policy_kwargs, tensorboard_log=tensorboard_log, verbose=0)
 
     kwargs = {'tb_log_name': TB_LOG_NAME}
     if log_interval > -1:
