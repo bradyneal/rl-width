@@ -119,7 +119,7 @@ def main():
                     elif hyperparam_setting == RLLIB_HYPER:
                         raise NotImplementedError("To be implemented")
                     elif hyperparam_setting == DEFAULT_HYPER:
-                        raise NotImplementedError("To be implemented")
+                        zoo_train(env_id, algo, seed, width, log_dir, args_dict, default_hyper=True, **remain_args_dict)
 #            if start_seed == 0:
 #                plot_all_widths(env_id, algo, widths, end_seed + 1, figure_dir)
 

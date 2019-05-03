@@ -62,7 +62,7 @@ def build_monitor_dir(log_dir):
     
 
 def zoo_train(env_id, algo, seed, width, log_dir, args_dict, depth, n_timesteps,
-            log_interval, scale_lr, no_tensorboard, lr_pow, act_fun):
+            log_interval, scale_lr, no_tensorboard, lr_pow, act_fun, default_hyper=False):
     """
     Train an RL agent with the given specifications, using the Stable Baselines
     library and tuned hyperparametes from rl-baselines-zoo.
@@ -219,7 +219,12 @@ def zoo_train(env_id, algo, seed, width, log_dir, args_dict, depth, n_timesteps,
     else:
         print('Using activation function:', act_fun)
     policy_kwargs = dict(act_fun=STR_TO_ACT_FUN[act_fun], net_arch=[width for _ in range(depth)])
-    model = STR_TO_ALGO[algo](env=env, policy_kwargs=policy_kwargs, tensorboard_log=tensorboard_log, verbose=0, **hyperparams)
+    
+    if not default_hyper:   # almost all experiments
+        model = STR_TO_ALGO[algo](env=env, policy_kwargs=policy_kwargs, tensorboard_log=tensorboard_log, verbose=0, **hyperparams)
+    else:
+        print('Running with Stable Baselines default hyperparameters')
+        model = STR_TO_ALGO[algo](env=env, policy_kwargs=policy_kwargs, tensorboard_log=tensorboard_log, verbose=0)
 
     kwargs = {'tb_log_name': TB_LOG_NAME}
     if log_interval > -1:
