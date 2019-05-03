@@ -203,10 +203,9 @@ class ResultsPlotter:
 
             fig = plt.figure()
             for i, (width, x, y, y_offset) in enumerate(zip(widths, xs, y_avgs, y_offsets)):
-                color = 'C' + str(i)
                 linestyle = linestyles[i % len(linestyles)]
-                plt.plot(x, y, '-', label=str(width), color=color, linestyle=linestyle)
-                plt.fill_between(x, y + y_offset, y - y_offset, facecolor=color, alpha=self.alpha)
+                plt.plot(x, y, '-', label=str(width), linestyle=linestyle)
+                plt.fill_between(x, y + y_offset, y - y_offset, alpha=self.alpha)
             plt.legend()
             plt.xlabel(self.xaxis)
             plt.ylabel('average return')
