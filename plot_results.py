@@ -9,6 +9,7 @@ Created on Mon Apr 29 14:57:36 2019
 import os
 import numpy as np
 from math import sqrt
+from statistics import median
 from collections import OrderedDict
 import ast
 
@@ -54,6 +55,7 @@ FANCY_LINESTYLES = OrderedDict(
 #     ('dashdotdotted',         (0, (3, 5, 1, 5, 1, 5))),
 #     ('densely dashdotdotted', (0, (3, 1, 1, 1, 1, 1)))
      ])
+TRIM_WIDTHS_DEF = 'median'
 
 
 def plot_all_widths(*args, **kwargs):
@@ -67,7 +69,7 @@ class ResultsPlotter:
                  hyperparam_setting=HYPERPARAM_DEF, scale_lr=False, lr_pow=LR_POW_DEF,
                  path_args={}, smooth_window=50, smooth_seeds=True, smooth_mean=False,
                  smooth_std=False, xaxis=X_EPISODES, conf_int='mean',
-                 alpha=0.5, trim_diff_widths=True, color_palettes=[COLOR_PALETTE_DEF], linestyle='-'):
+                 alpha=0.5, trim_widths_type=TRIM_WIDTHS_DEF, color_palettes=[COLOR_PALETTE_DEF], linestyle='-'):
         self.env_id = env_id
         self.algo = algo
         self.widths = widths
@@ -84,7 +86,7 @@ class ResultsPlotter:
         self.xaxis = xaxis
         self.conf_int = conf_int
         self.alpha = alpha
-        self.trim_diff_widths = trim_diff_widths
+        self.trim_widths_type = trim_widths_type
         self.linestyle = linestyle
         self.color_palettes = color_palettes
         
@@ -140,10 +142,8 @@ class ResultsPlotter:
         xs = []
         means = []
         stds = []
-        min_len = float('inf')
         for width in self.widths:
             x, Y = self.get_seeds(width)
-            min_len = min(min_len, x.shape[0])
             mean = np.mean(Y, axis=STACK_DIM)
             std = np.std(Y, axis=STACK_DIM)
             if self.conf_int == 'mean':
@@ -157,11 +157,20 @@ class ResultsPlotter:
             stds.append(std)
         
         # Trim all seeds to the same length
-        if self.trim_diff_widths:
+        if self.trim_widths_type is not None:
+            lengths = [len(x) for x in xs]
+            if self.trim_widths_type == 'min':
+                trim_len = min(lengths)
+            elif self.trim_widths_type == 'median':
+                print('Trimming to median length')
+                trim_len = median(lengths)
+            else:
+                raise ValueError('Invalid trim type: {}'.format(self.trim_diff_widths_type))
+                
             for i in range(len(self.widths)):
-                xs[i] = xs[i][:min_len]
-                means[i] = means[i][:min_len]
-                stds[i] = stds[i][:min_len]
+                xs[i] = xs[i][:trim_len]
+                means[i] = means[i][:trim_len]
+                stds[i] = stds[i][:trim_len]
         
         # Smooth        
         for i in range(len(means)):
