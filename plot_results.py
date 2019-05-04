@@ -258,9 +258,9 @@ class ResultsPlotter:
             algo_fullname = get_algo_fullname(self.algo, self.hyperparam_setting,
                                               self.scale_lr, lr_pow=self.lr_pow)
             if len(self.color_palettes) == 1:
-                filename = '{}_{}.pdf'.format(self.env_id, algo_fullname)
+                filename = '{}_{}_{}.pdf'.format(self.env_id, algo_fullname, self.xaxis)
             else:
-                filename = '{}_{}_{}.pdf'.format(self.env_id, algo_fullname, palette)
+                filename = '{}_{}_{}_{}.pdf'.format(self.env_id, algo_fullname, self.xaxis, palette)
             path = os.path.join(self.figure_dir, filename)
             print('Saving figure to', path)
             fig.savefig(path, bbox_inches='tight')
