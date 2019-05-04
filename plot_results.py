@@ -10,6 +10,7 @@ import os
 import numpy as np
 from math import sqrt
 from statistics import median
+from scipy.stats import t
 from collections import OrderedDict
 import ast
 
@@ -56,6 +57,7 @@ FANCY_LINESTYLES = OrderedDict(
 #     ('densely dashdotdotted', (0, (3, 1, 1, 1, 1, 1)))
      ])
 TRIM_WIDTHS_DEF = 'median'
+XAXIS_DEF = X_EPISODES
 
 
 def plot_all_widths(*args, **kwargs):
@@ -68,7 +70,7 @@ class ResultsPlotter:
     def __init__(self, env_id, algo, widths, n_seeds, figure_dir,
                  hyperparam_setting=HYPERPARAM_DEF, scale_lr=False, lr_pow=LR_POW_DEF,
                  path_args={}, smooth_window=50, smooth_seeds=True, smooth_mean=False,
-                 smooth_std=False, xaxis=X_EPISODES, conf_int='mean',
+                 smooth_std=False, xaxis=XAXIS_DEF, conf_int_type='mean', conf_int=0.75,
                  alpha=0.5, trim_widths_type=TRIM_WIDTHS_DEF, color_palettes=[COLOR_PALETTE_DEF], linestyle='-'):
         self.env_id = env_id
         self.algo = algo
@@ -84,6 +86,7 @@ class ResultsPlotter:
         self.smooth_mean = smooth_mean
         self.smooth_std = smooth_std
         self.xaxis = xaxis
+        self.conf_int_type = conf_int_type
         self.conf_int = conf_int
         self.alpha = alpha
         self.trim_widths_type = trim_widths_type
@@ -93,6 +96,7 @@ class ResultsPlotter:
     def get_monitor_dir(self, width, seed):
         log_dir = build_log_dir(env_id=self.env_id, algo=self.algo,
                                 width=width, seed=seed, scale_lr=self.scale_lr,
+                                hyperparam_setting=self.hyperparam_setting,
                                 lr_pow=self.lr_pow, **self.path_args)
         return build_monitor_dir(log_dir)
         
@@ -112,11 +116,7 @@ class ResultsPlotter:
         y_seeds = []
         min_len = float('inf')
         for seed in seeds:
-            x_seed, y_seed = self.get_x_y(width, seed)
-            
-            if self.smooth_seeds:
-                x_seed, y_seed = self.smooth(x_seed, y_seed)
-                
+            x_seed, y_seed = self.get_seed(width, seed)                
             min_len = min(min_len, x_seed.shape[0])
             x_seeds.append(x_seed)
             y_seeds.append(y_seed)
@@ -129,6 +129,33 @@ class ResultsPlotter:
         Y = np.stack(y_seeds, axis=STACK_DIM)
         
         return x, Y
+    
+    def get_seed(self, width, seed):
+        x, y = self.get_x_y(width, seed)
+        if self.smooth_seeds:
+            x, y = self.smooth(x, y)
+        
+        if self.xaxis == X_TIMESTEPS:
+            y_full = np.full(x[-1], np.nan, dtype=y.dtype)
+            y_full[x - 1] = y
+            assert y[0] and not np.isnan(y[0])
+            last_return = y[0]
+            for i, y_i in enumerate(y_full):                    
+#                print(y_i)
+                if np.isnan(y_i):
+                    y_full[i] = last_return
+                else:
+                    last_return = y_i
+            x = np.arange(1, x[-1] + 1)
+            y = y_full
+        elif self.xaxis == X_EPISODES:
+            pass    # already in the right format
+        elif self.xaxis == X_WALLTIME:
+            raise NotImplementedError('To be implemented')
+        else:
+            raise ValueError('Invalid x-axis type: {}'.format(self.xaxis))
+            
+        return x, y
     
     def smooth(self, x, y):
         if self.smooth_window is not None and x.shape[0] >= self.smooth_window:
@@ -146,12 +173,12 @@ class ResultsPlotter:
             x, Y = self.get_seeds(width)
             mean = np.mean(Y, axis=STACK_DIM)
             std = np.std(Y, axis=STACK_DIM)
-            if self.conf_int == 'mean':
-                std /= sqrt(self.n_seeds)
-            elif self.conf_int == 'seed':
+            if self.conf_int_type == 'mean':
+                std = get_t(self.conf_int, df=self.n_seeds-1) * std / sqrt(self.n_seeds)
+            elif self.conf_int_type == 'seed':
                 pass
             else:
-                raise ValueError('Invalid "conf_int" value: {}'.format(self.conf_int))
+                raise ValueError('Invalid "conf_int_type" value: {}'.format(self.conf_int_type))
             xs.append(x)
             means.append(mean)
             stds.append(std)
@@ -251,9 +278,16 @@ def get_kwargs_after_delim(s, delim='_', default={}):
         kwargs = ast.literal_eval(split[1])
     return kwargs
 
+def get_t(alpha, df, two_sided=True):
+    if two_sided:
+        alpha = (1 + alpha) / 2
+    return t.ppf(alpha, 4)
+
         
 if __name__ == '__main__':
     PARSER.add_argument('--palettes', nargs='+', default=[COLOR_PALETTE_DEF], type=str, help='color palettes to make plots in')
+    PARSER.add_argument('--x-axis', default=XAXIS_DEF, type=str, choices=[X_TIMESTEPS, X_EPISODES, X_WALLTIME], help='what to plot on the x-axis')
+    args = PARSER.parse_args()
     args = PARSER.parse_args()
     
     if args.start_end_seed is None:
@@ -267,5 +301,5 @@ if __name__ == '__main__':
             figure_dir = os.path.join(args.results_dir, args.figure_dir, args.name)
             plot_all_widths(env_id, algo, args.widths, n_seeds=n_seeds, figure_dir=figure_dir,
                  hyperparam_setting=args.hyperparam, scale_lr=args.scale_lr, lr_pow=args.lr_pow,
-                 color_palettes=args.palettes, path_args={'exp_name': args.name})
+                 xaxis=args.x_axis, color_palettes=args.palettes, path_args={'exp_name': args.name})
             
