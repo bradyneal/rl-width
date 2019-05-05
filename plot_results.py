@@ -250,8 +250,8 @@ class ResultsPlotter:
                 plt.plot(x, y, '-', label=str(width), linestyle=linestyle)
                 plt.fill_between(x, y + y_offset, y - y_offset, alpha=self.alpha)
             plt.legend()
-            plt.xlabel(self.xaxis)
-            plt.ylabel('average return')
+            plt.xlabel(self.xaxis.capitalize())
+            plt.ylabel('Average Return')
             plt.tight_layout()
             
             os.makedirs(self.figure_dir, exist_ok=True)
