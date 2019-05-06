@@ -58,6 +58,8 @@ FANCY_LINESTYLES = OrderedDict(
      ])
 TRIM_WIDTHS_DEF = 'median'
 XAXIS_DEF = X_EPISODES
+FILETYPE_DEF = 'png'
+DPI_DEF = 250
 
 
 def plot_all_widths(*args, **kwargs):
@@ -71,7 +73,8 @@ class ResultsPlotter:
                  hyperparam_setting=HYPERPARAM_DEF, scale_lr=False, lr_pow=LR_POW_DEF,
                  path_args={}, smooth_window=50, smooth_seeds=True, smooth_mean=False,
                  smooth_std=False, xaxis=XAXIS_DEF, conf_int_type='mean', conf_int=0.75,
-                 alpha=0.5, trim_widths_type=TRIM_WIDTHS_DEF, color_palettes=[COLOR_PALETTE_DEF], linestyle='-'):
+                 alpha=0.5, trim_widths_type=TRIM_WIDTHS_DEF, dpi=DPI_DEF,
+                 filetype=FILETYPE_DEF, color_palettes=[COLOR_PALETTE_DEF], linestyle='-'):
         self.env_id = env_id
         self.algo = algo
         self.widths = widths
@@ -90,8 +93,10 @@ class ResultsPlotter:
         self.conf_int = conf_int
         self.alpha = alpha
         self.trim_widths_type = trim_widths_type
-        self.linestyle = linestyle
+        self.dpi = dpi
+        self.filetype = filetype
         self.color_palettes = color_palettes
+        self.linestyle = linestyle
         
     def get_monitor_dir(self, width, seed):
         log_dir = build_log_dir(env_id=self.env_id, algo=self.algo,
@@ -226,7 +231,7 @@ class ResultsPlotter:
         widths = self.widths
         xs, y_avgs, y_offsets = self.get_all_widths_mean_and_std()
         assert len(xs) == len(widths)
-        
+                
         n_colors = len(widths)
         for palette in self.color_palettes:
             print('palette:', palette)
@@ -258,12 +263,12 @@ class ResultsPlotter:
             algo_fullname = get_algo_fullname(self.algo, self.hyperparam_setting,
                                               self.scale_lr, lr_pow=self.lr_pow)
             if len(self.color_palettes) == 1:
-                filename = '{}_{}_{}.pdf'.format(self.env_id, algo_fullname, self.xaxis)
+                filename = '{}_{}_{}'.format(self.env_id, algo_fullname, self.xaxis)
             else:
-                filename = '{}_{}_{}_{}.pdf'.format(self.env_id, algo_fullname, self.xaxis, palette)
-            path = os.path.join(self.figure_dir, filename)
+                filename = '{}_{}_{}_{}'.format(self.env_id, algo_fullname, self.xaxis, palette)
+            path = '{}.{}'.format(os.path.join(self.figure_dir, filename), self.filetype)
             print('Saving figure to', path)
-            fig.savefig(path, bbox_inches='tight')
+            fig.savefig(path, bbox_inches='tight', dpi=self.dpi)
             fig.show()
         
     def get_all_widths_est_bootstrap(self):
@@ -287,6 +292,8 @@ def get_t(alpha, df, two_sided=True):
 if __name__ == '__main__':
     PARSER.add_argument('--palettes', nargs='+', default=[COLOR_PALETTE_DEF], type=str, help='color palettes to make plots in')
     PARSER.add_argument('--x-axis', default=XAXIS_DEF, type=str, choices=[X_TIMESTEPS, X_EPISODES, X_WALLTIME], help='what to plot on the x-axis')
+    PARSER.add_argument('--filetype', default=FILETYPE_DEF, type=str, help='plot file type')
+    PARSER.add_argument('--dpi', default=DPI_DEF, type=int, help='dpi')
     args = PARSER.parse_args()
     args = PARSER.parse_args()
     
@@ -301,5 +308,6 @@ if __name__ == '__main__':
             figure_dir = os.path.join(args.results_dir, args.figure_dir, args.name)
             plot_all_widths(env_id, algo, args.widths, n_seeds=n_seeds, figure_dir=figure_dir,
                  hyperparam_setting=args.hyperparam, scale_lr=args.scale_lr, lr_pow=args.lr_pow,
-                 xaxis=args.x_axis, color_palettes=args.palettes, path_args={'exp_name': args.name})
+                 filetype=args.filetype, dpi=args.dpi, xaxis=args.x_axis,
+                 color_palettes=args.palettes, path_args={'exp_name': args.name})
             
