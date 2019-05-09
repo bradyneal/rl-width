@@ -77,6 +77,10 @@ class Trainer:
         else:
             print('Using activation function:', act_fun)
         self.net_kwargs = dict(act_fun=STR_TO_ACT_FUN[act_fun], net_arch=[width for _ in range(depth)])
+        learn_kwargs = {'tb_log_name': TB_LOG_NAME}
+        if self.log_interval > -1:
+            learn_kwargs = {'log_interval': self.log_interval}
+        self.learn_kwargs = learn_kwargs
 
         # Make directories
         os.makedirs(log_dir, exist_ok=True)
@@ -96,10 +100,17 @@ class Trainer:
     def default_train(self):
         print('Running with Stable Baselines default hyperparameters')
 
+        # Set default
+        if self.n_timesteps == -1:
+            print('setting timeSTEPS')
+            self.n_timesteps = 1e6
+
         # Only using single env (for TRPO) right now
         env = DummyVecEnv([make_env(self.env_id, self.monitor_dir, self.seed, env_i=0, n_envs=1)])
         model = STR_TO_ALGO[self.algo](MlpPolicy, env=env, policy_kwargs=self.net_kwargs,
                                   tensorboard_log=self.tensorboard_log, verbose=0)
+        model.learn(self.n_timesteps, **self.learn_kwargs)
+
         hyperparams = 'default'
         self.save(model, hyperparams)
         env.close()
@@ -249,10 +260,7 @@ class Trainer:
 
         # Train agent
         model = STR_TO_ALGO[self.algo](env=env, policy_kwargs=self.net_kwargs, tensorboard_log=self.tensorboard_log, verbose=0, **hyperparams)
-        kwargs = {'tb_log_name': TB_LOG_NAME}
-        if self.log_interval > -1:
-            kwargs = {'log_interval': self.log_interval}
-        model.learn(self.n_timesteps, **kwargs)
+        model.learn(self.n_timesteps, **self.learn_kwargs)
 
         self.save(model, saved_hyperparams)
 
