@@ -12,7 +12,8 @@ import os
 from pprint import pprint
 
 import gym
-from train import zoo_train, STR_TO_ALGO
+from train import Trainer, STR_TO_ALGO
+
 #from results_plotting import plot_all_widths
 
 
@@ -72,6 +73,7 @@ def build_log_dir(env_id, algo, width, seed, results_dir=RESULTS_DEF,
                            'w{}_d{}'.format(width, depth), 'seed{}'.format(seed))
     return log_dir
 
+
 def get_algo_fullname(algo, hyperparam_setting, scale_lr, lr_pow=LR_POW_DEF):
     if scale_lr:
         algo_fullname = '{}_{}_scale-lr{}'.format(algo, hyperparam_setting, lr_pow)
@@ -114,12 +116,13 @@ def main():
             for seed in range(start_seed, end_seed + 1):
                 for width in widths:
                     log_dir = build_log_dir(env_id, algo, width, seed, results_dir=results_dir, log_folder=log_folder, exp_name=exp_name, hyperparam_setting=hyperparam_setting, scale_lr=args.scale_lr, depth=args.depth, lr_pow=args.lr_pow)
+                    trainer = Trainer(env_id, algo, seed, width, log_dir, args_dict, **remain_args_dict)
                     if hyperparam_setting == RL_BASELINES_ZOO_HYPER:
-                        zoo_train(env_id, algo, seed, width, log_dir, args_dict, **remain_args_dict)
+                        trainer.zoo_train()
                     elif hyperparam_setting == RLLIB_HYPER:
                         raise NotImplementedError("To be implemented")
                     elif hyperparam_setting == DEFAULT_HYPER:
-                        zoo_train(env_id, algo, seed, width, log_dir, args_dict, default_hyper=True, **remain_args_dict)
+                        trainer.default_train()
 #            if start_seed == 0:
 #                plot_all_widths(env_id, algo, widths, end_seed + 1, figure_dir)
 
