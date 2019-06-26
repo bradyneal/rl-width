@@ -77,7 +77,8 @@ def build_monitor_dir(log_dir):
 class Trainer:
 
     def __init__(self, env_id, algo, seed, width, log_dir, args_dict, depth, n_timesteps,
-            log_interval, scale_lr, no_tensorboard, lr_pow, act_fun, break_width, default_hyper=False):
+                 log_interval, scale_lr, scale_nsteps, scale_nenvs, no_tensorboard, lr_pow,
+                 act_fun, break_width, default_hyper=False):
         # Add all arguments as fields
         self.__dict__.update(locals())
         del self.__dict__['self']
@@ -146,6 +147,8 @@ class Trainer:
             else:
                 hyperparams = yaml.safe_load(f)[self.env_id]
 
+        n_envs = hyperparams.get('n_envs', 1)
+
         # Scale learning rate and batch size with width
         if self.scale_lr:
             get_scaled = lambda x: min(x, x * math.pow(self.width / self.break_width, self.lr_pow))
@@ -165,21 +168,26 @@ class Trainer:
 
             # Batch size scaling currently only scaling n_steps (not in all learners)
             nsteps_before = hyperparams.get(NSTEPS_KEY, ALGO_TO_DEF_NSTEPS[self.algo])
-            if NSTEPS_KEY not in hyperparams:
-                hyperparams[NSTEPS_KEY] = int(get_scaled(ALGO_TO_DEF_NSTEPS[self.algo]))
-            elif isinstance(hyperparams[NSTEPS_KEY], int):
-                hyperparams[NSTEPS_KEY] = int(get_scaled(hyperparams[NSTEPS_KEY]))
-            else:
-                raise ValueError('Invalid value for {}: {}'.format(NSTEPS_KEY, hyperparams[NSTEPS_KEY]))
-            print('Scaled n_steps from {} to {}'.format(nsteps_before, hyperparams[NSTEPS_KEY]))
+            if self.scale_nsteps:
+                if NSTEPS_KEY not in hyperparams:
+                    hyperparams[NSTEPS_KEY] = round(get_scaled(ALGO_TO_DEF_NSTEPS[self.algo]))
+                elif isinstance(hyperparams[NSTEPS_KEY], int):
+                    hyperparams[NSTEPS_KEY] = round(get_scaled(hyperparams[NSTEPS_KEY]))
+                else:
+                    raise ValueError('Invalid value for {}: {}'.format(NSTEPS_KEY, hyperparams[NSTEPS_KEY]))
+                print('Scaled n_steps from {} to {}'.format(nsteps_before, hyperparams[NSTEPS_KEY]))
+            elif self.scale_nenvs:
+                if not isinstance(n_envs, int):
+                    raise ValueError('n_envs is of type {} instead of {}'.format(type(n_envs), int))
+                n_envs_before = n_envs
+                n_envs = round(get_scaled(n_envs))
+                print('Scaled n_envs from {} to {}'.format(n_envs_before, n_envs))
+
+        print("Using {} environments".format(n_envs))
 
         # Sort hyperparams that will be saved
         saved_hyperparams = OrderedDict([(key, hyperparams[key]) for key in sorted(hyperparams.keys())])
         pprint(saved_hyperparams)
-
-        n_envs = hyperparams.get('n_envs', 1)
-
-        print("Using {} environments".format(n_envs))
 
         # Create learning rate schedules for ppo2 and sac
         if self.algo in ["ppo2", "sac"]:
