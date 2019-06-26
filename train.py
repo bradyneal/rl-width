@@ -30,6 +30,7 @@ MONITOR_FOLDER = 'monitor'
 TB_LOG_NAME = 'tb'
 TUNED_WIDTH = 64
 LR_KEY = 'learning_rate'
+NSTEPS_KEY = 'n_steps'
 
 STR_TO_ALGO = {
     'a2c': A2C,
@@ -42,7 +43,7 @@ STR_TO_ALGO = {
     'trpo': TRPO,
 }
 
-# Default learnings rates coppied from Stable Baselines on May 1, 2019
+# Default learnings rates copied from Stable Baselines on May 1, 2019
 ALGO_TO_DEF_LR = {
     'a2c': 7e-4,
     'acer': 7e-4,
@@ -51,6 +52,17 @@ ALGO_TO_DEF_LR = {
 #    'ddpg': {'actor_lr': 1e-4, 'critic_lr': 1e-3},
     'sac': 3e-4,
     'ppo2': 2.5e-4,
+}
+
+# Default n_steps copied from Stable Baselines on June 26, 2019
+ALGO_TO_DEF_NSTEPS = {
+    'a2c': 5,
+    'acer': 20,
+    'acktr': 20,  # just the discrete one
+    # 'dqn': 32, ("batch_size=32")
+    # 'ddpg': 128, ("batch_size=128")
+    # 'sac': 64, ("batch_size=64")
+    'ppo2': 128,
 }
 
 STR_TO_ACT_FUN = {
@@ -65,7 +77,7 @@ def build_monitor_dir(log_dir):
 class Trainer:
 
     def __init__(self, env_id, algo, seed, width, log_dir, args_dict, depth, n_timesteps,
-            log_interval, scale_lr, no_tensorboard, lr_pow, act_fun, default_hyper=False):
+            log_interval, scale_lr, no_tensorboard, lr_pow, act_fun, break_width, default_hyper=False):
         # Add all arguments as fields
         self.__dict__.update(locals())
         del self.__dict__['self']
@@ -102,7 +114,6 @@ class Trainer:
 
         # Set default
         if self.n_timesteps == -1:
-            print('setting timeSTEPS')
             self.n_timesteps = 1e6
 
         # Only using single env (for TRPO) right now
@@ -135,21 +146,32 @@ class Trainer:
             else:
                 hyperparams = yaml.safe_load(f)[self.env_id]
 
-        # Scale learning rate with width
+        # Scale learning rate and batch size with width
         if self.scale_lr:
+            get_scaled = lambda x: min(x, x * math.pow(self.width / self.break_width, self.lr_pow))
+
             lr_before = hyperparams.get(LR_KEY, ALGO_TO_DEF_LR[self.algo])
-            get_scaled_lr = lambda lr: min(lr, lr * math.pow(self.width / TUNED_WIDTH, self.lr_pow))
             if LR_KEY not in hyperparams:
-                hyperparams[LR_KEY] = get_scaled_lr(ALGO_TO_DEF_LR[self.algo])
+                hyperparams[LR_KEY] = get_scaled(ALGO_TO_DEF_LR[self.algo])
             elif isinstance(hyperparams[LR_KEY], str):
                 schedule, initial_value = hyperparams[LR_KEY].split('_')
-                initial_value = str(get_scaled_lr(float(initial_value)))
+                initial_value = str(get_scaled(float(initial_value)))
                 hyperparams[LR_KEY] = schedule + '_' + initial_value
             elif isinstance(hyperparams[LR_KEY], float):
-                hyperparams[LR_KEY] = get_scaled_lr(hyperparams[LR_KEY])
+                hyperparams[LR_KEY] = get_scaled(hyperparams[LR_KEY])
             else:
                 raise ValueError('Invalid value for {}: {}'.format(LR_KEY, hyperparams[LR_KEY]))
             print('Scaled learning rate from {} to {}'.format(lr_before, hyperparams[LR_KEY]))
+
+            # Batch size scaling currently only scaling n_steps (not in all learners)
+            nsteps_before = hyperparams.get(NSTEPS_KEY, ALGO_TO_DEF_NSTEPS[self.algo])
+            if NSTEPS_KEY not in hyperparams:
+                hyperparams[NSTEPS_KEY] = int(get_scaled(ALGO_TO_DEF_NSTEPS[self.algo]))
+            elif isinstance(hyperparams[NSTEPS_KEY], int):
+                hyperparams[NSTEPS_KEY] = int(get_scaled(hyperparams[NSTEPS_KEY]))
+            else:
+                raise ValueError('Invalid value for {}: {}'.format(NSTEPS_KEY, hyperparams[NSTEPS_KEY]))
+            print('Scaled n_steps from {} to {}'.format(nsteps_before, hyperparams[NSTEPS_KEY]))
 
         # Sort hyperparams that will be saved
         saved_hyperparams = OrderedDict([(key, hyperparams[key]) for key in sorted(hyperparams.keys())])

@@ -52,6 +52,7 @@ PARSER.add_argument('-n', '--n-timesteps', help='Overwrite the number of timeste
 PARSER.add_argument('--log-interval', help='Override log interval (default: -1, no change)', default=-1, type=int)
 PARSER.add_argument('--scale-lr', action='store_true', help='scale learning rate with width')
 PARSER.add_argument('--lr-pow', default=LR_POW_DEF, type=float, help='exponent to scale learning rate with width by')
+PARSER.add_argument('--break-width', type=int, help='width at which the specified learning rate becomes unstable (needs decrease)')
 PARSER.add_argument('--no-tensorboard', action='store_true', help='do not log tensorboard events files (logged by default)')
 
 
