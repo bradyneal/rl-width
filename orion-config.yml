@@ -1,0 +1,11 @@
+algorithms:
+   asha:
+      seed: null
+      max_resources: !!float 1e6
+      grace_period: !!float 5e5
+      reduction_factor: 4
+      num_brackets: 1
+database:
+  type: 'pickleddb'
+  host: './hyperparameter_search_results.pkl'
+

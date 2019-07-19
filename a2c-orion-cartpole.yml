@@ -1,0 +1,11 @@
+CartPole-v1:
+  n_envs: 8
+  lr_schedule: 'constant'
+  n_timesteps: 'orion~fidelity()'
+  policy: 'MlpPolicy'
+  gamma: 0.99
+  n_steps: 5
+  ent_coef: 0.0
+  max_grad_norm: 0.5
+  learning_rate: 'orion~uniform(3e-4, 7e-4)'
+

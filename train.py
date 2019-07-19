@@ -12,6 +12,7 @@ from pprint import pprint
 import numpy as np
 import yaml
 import math
+from orion.client import report_results
 
 import gym
 from stable_baselines.common import set_global_seeds
@@ -78,7 +79,7 @@ class Trainer:
 
     def __init__(self, env_id, algo, seed, width, log_dir, args_dict, depth, n_timesteps,
                  log_interval, scale_lr, scale_nsteps, scale_nenvs, no_tensorboard, lr_pow,
-                 act_fun, break_width, default_hyper=False):
+                 act_fun, break_width, default_hyper=False, **kwargs):
         # Add all arguments as fields
         self.__dict__.update(locals())
         del self.__dict__['self']
@@ -127,7 +128,7 @@ class Trainer:
         self.save(model, hyperparams)
         env.close()
 
-    def zoo_train(self):
+    def zoo_train(self, config=None):
         """
         Train an RL agent with the given specifications, using the Stable Baselines
         library and tuned hyperparametes from rl-baselines-zoo.
@@ -141,7 +142,11 @@ class Trainer:
         print("=" * 10, self.env_id, "=" * 10)
 
         # Load hyperparameters from yaml file
-        with open(os.path.join(HYPERPARAMS_FOLDER, self.algo) + '.yml', 'r') as f:
+        if config:
+            hparam_path = config
+        else:
+            hparam_path = os.path.join(HYPERPARAMS_FOLDER, self.algo) + '.yml'
+        with open(hparam_path, 'r') as f:
             if is_atari:
                 hyperparams = yaml.safe_load(f)['atari']
             else:
@@ -244,8 +249,8 @@ class Trainer:
                 env = VecNormalize(env, **normalize_kwargs)
 
         # Optional Frame-stacking
+        n_stack = 1
         if hyperparams.get('frame_stack', False):
-            n_stack = 1
             n_stack = hyperparams['frame_stack']
             env = VecFrameStack(env, n_stack)
             print("Stacking {} frames".format(n_stack))
@@ -301,10 +306,41 @@ class Trainer:
             # Important: save the running average, for testing the agent we need that normalization
             env.save_running_average(self.log_dir)
 
+        eval_env = DummyVecEnv([make_env(self.env_id, self.monitor_dir, self.seed, env_i=0, n_envs=1)])
+        if normalize:
+            print("Normalizing input and return")
+            eval_env = VecNormalize(eval_env, **normalize_kwargs)
+
+        # Optional Frame-stacking
+        if n_stack > 1:
+            eval_env = VecFrameStack(eval_env, n_stack)
+
+        validation_returns = evaluate(eval_env, lambda obs : model.step(obs)[0])
+        report_results([dict(name='validation_return', type='objective', value=np.mean(validation_returns))])
         env.close()
+ 
+        return model
 
 
 
+def evaluate(env, act, number_episodes = 20):
+    episode_returns = []
+
+    for i in range(number_episodes):
+        episode_return = 0
+        done = False
+        obs = env.reset()
+        while not done:
+            action = act(obs)
+            next_obs, reward, done, info = env.step(action)
+            obs = next_obs
+            if not isinstance(reward, float) or not isinstance(reward, int):
+                reward = reward[0] # try to index into it, otherwise this will cause an error
+            episode_return += reward
+
+        episode_returns.append(episode_return)
+
+    return np.mean(episode_returns), np.std(episode_returns)
 
 def make_env(env_id, monitor_dir, seed, env_i=0, n_envs=1):
     """
